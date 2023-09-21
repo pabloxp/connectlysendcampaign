@@ -1,4 +1,4 @@
-package connectysendcampaign
+package connectlysendcampaign
 
 import (
 	"bytes"
