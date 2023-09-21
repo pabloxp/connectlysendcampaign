@@ -1,4 +1,4 @@
-package BatchSendCampaign
+package connectysendcampaign
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"os"
   "sync"
   "time"
+  "io"
 )
 
 var Version string = "1.0"
@@ -203,23 +204,65 @@ func sendBatchRequest(url, apiKey string, headers map[string]string, data []map[
 	defer resp.Body.Close()
 
 	// Check the response status code, you can handle success and error cases here
-	if resp.StatusCode != http.StatusUnauthorized {
-		fmt.Printf("HTTP status code: %d", resp.StatusCode)
-	}else{
-    return fmt.Errorf("HTTP request failed with status code: %d", resp.StatusCode)
-  }
+	if resp.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("HTTP request failed with status code: %d", resp.StatusCode)
+	}
 
+	return nil
+}
+
+func DownloadCSVFile(url, outputPath string) error {
+
+  logger := log.New(os.Stdout, "DownloadCSVFile: ", log.Ldate|log.Ltime|log.Lmicroseconds)
+
+	logger.Printf("Starting DownloadCSVFile with CSV file: %s\n", url)
+
+
+	// Make an HTTP GET request to the URL
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Check if the response status code is OK (200)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP request failed with status code: %d", resp.StatusCode)
+	}
+
+	// Create the output file
+	outFile, err := os.Create(outputPath)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	// Copy the response body to the output file
+	_, err = io.Copy(outFile, resp.Body)
+	if err != nil {
+		return err
+	}
+  logger.Printf("CSV file downloaded to: %s\n", outputPath)
 	return nil
 }
 
 func main() {
 	// Example usage of BatchSendCampaign
+  url := "https://raw.githubusercontent.com/pabloxp/connectlysendcampaign/main/sample_connectly_campaign.csv" // Replace with the URL of the CSV file
+	outputPath := "downloaded.csv"             // output file path
+
+	err := DownloadCSVFile(url, outputPath)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
 	request := BatchSendCampaignRequest{
 		URL:         "https://cde176f9-7913-4af7-b352-75e26f94fbe3.mock.pstmn.io/v1/businesses/f1980bf7-c7d6-40ec-b665-dbe13620bffa/send/whatsapp_templated_messages",
 		APIKey:      "<API Key>",
 		Headers:     map[string]string{"Accept": "application/json"},
 		BatchSize:   5,
-		CSVFilePath: "sample_connectly_campaign.csv",
+		CSVFilePath: outputPath,
 	}
 
 	response, err := BatchSendCampaign(request)
