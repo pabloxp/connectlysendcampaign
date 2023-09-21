@@ -14,9 +14,6 @@ import (
 
 var Version string = "1.0"
 
- func Log(mess string) {
-  fmt.Println("[LOG] " + mess)
- }
 
 // BatchSendCampaignRequest represents the request structure for BatchSendCampaign.
 type BatchSendCampaignRequest struct {
